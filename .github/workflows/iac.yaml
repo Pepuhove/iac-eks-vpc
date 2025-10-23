@@ -14,47 +14,46 @@ env:
   S3_BUCKET: ${{ secrets.S3_BUCKET }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
   EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
-  ECR_REPO: ${{ secrets.ECR_REPO }}
 
 jobs:
-  # terraform:
-  #   name: "Deploy Infra with Terraform on AWS"
-  #   runs-on: ubuntu-latest
-  #   if: github.event_name == 'push'
-  #   defaults:
-  #     run:
-  #       shell: bash
-  #       working-directory: ./terraform
+  terraform:
+    name: "Deploy Infra with Terraform on AWS"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./terraform
 
-  #   steps:
-  #     - name: Checkout source code
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-  #     - name: Setup Terraform
-  #       uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-  #     - name: Terraform init
-  #       run: terraform init -backend-config="bucket=$S3_BUCKET"
+      - name: Terraform init
+        run: terraform init -backend-config="bucket=$S3_BUCKET"
 
-  #     - name: Terraform validate
-  #       run: terraform validate
+      - name: Terraform validate
+        run: terraform validate
 
-  #     - name: Terraform plan
-  #       run: terraform plan -no-color -input=false -out planfile
-  #       continue-on-error: true
+      - name: Terraform plan
+        run: terraform plan -no-color -input=false -out planfile
+        continue-on-error: true
 
-  #     - name: Terraform apply
-  #       run: terraform apply -auto-approve -input=false planfile
+      - name: Terraform apply
+        run: terraform apply -auto-approve -input=false planfile
 
-  #     - name: Wait for EKS cluster to be active
-  #       run: aws eks wait cluster-active --name $EKS_CLUSTER --region $AWS_REGION
+      - name: Wait for EKS cluster to be active
+        run: aws eks wait cluster-active --name $EKS_CLUSTER --region $AWS_REGION
 
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ secrets.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       
   destroy:
@@ -89,19 +88,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
-      # - name: Update kubeconfig
-      #   run: aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-
-      # - name: Delete Ingress Controller
-      #   run: kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0-beta.0/deploy/static/provider/aws/deploy.yaml
-
-      # - name: Empty ECR Repository
-      #   run: |
-      #     IMAGES=$(aws ecr list-images --repository-name $ECR_REPO --query 'imageIds[*]' --output json)
-      #     if [[ "$IMAGES" != "[]" ]]; then
-      #       aws ecr batch-delete-image --repository-name $ECR_REPO --image-ids "$IMAGES"
-      #     fi
-
+    
       - name: Terraform destroy
         run: terraform destroy -auto-approve -input=false -lock=false
