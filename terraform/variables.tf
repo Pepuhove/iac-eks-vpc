@@ -67,7 +67,7 @@ variable "node_groups" {
     }
   }
 }
-
+# 
 
 variable "subnet_ids" {
   description = "List of subnet IDs."

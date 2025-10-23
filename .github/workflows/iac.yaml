@@ -33,17 +33,17 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init
-        run: terraform init -backend-config="bucket=$S3_BUCKET"
+        run: terraform init -backend-config="bucket=$S3_BUCKET" -lock=false
 
       - name: Terraform validate
         run: terraform validate
 
       - name: Terraform plan
-        run: terraform plan -no-color -input=false -out planfile
+        run: terraform plan -no-color -input=false -out planfile -lock=false
         continue-on-error: true
 
       - name: Terraform apply
-        run: terraform apply -auto-approve -input=false planfile
+        run: terraform apply -auto-approve -input=false planfile -lock=false planfile
 
       - name: Wait for EKS cluster to be active
         run: aws eks wait cluster-active --name $EKS_CLUSTER --region $AWS_REGION
