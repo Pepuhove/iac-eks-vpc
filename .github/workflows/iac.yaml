@@ -90,7 +90,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
     
-      - name: Terraform destroy
+      - name: Terraform Destroy
         run: |
-          terraform destroy -target=module.eks.aws_eks_node_group.node_group_name -auto-approve -lock=false
-          terraform destroy -auto-approve -input=false -lock=false
+           terraform init -input=false -lock=false
+           terraform destroy -target=module.eks.aws_eks_node_group.my_node_group -auto-approve -lock=false || true
+           terraform destroy -auto-approve -input=false -lock=false
