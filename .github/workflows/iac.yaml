@@ -17,29 +17,29 @@ env:
   ECR_REPO: ${{ secrets.ECR_REPO }}
 
 jobs:
-  terraform:
-    name: "Deploy Infra with Terraform on AWS"
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-        working-directory: ./terraform
+  # terraform:
+  #   name: "Deploy Infra with Terraform on AWS"
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #       working-directory: ./terraform
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - run: terraform init -backend-config="bucket=$S3_BUCKET"
-      - run: terraform validate
-      - run: terraform plan -no-color -input=false -out planfile
-      - run: terraform apply -auto-approve -input=false planfile
-      - run: aws eks wait cluster-active --name $EKS_CLUSTER --region $AWS_REGION
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - run: aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-      - run: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0-beta.0/deploy/static/provider/aws/deploy.yaml
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: hashicorp/setup-terraform@v3
+  #     - run: terraform init -backend-config="bucket=$S3_BUCKET"
+  #     - run: terraform validate
+  #     - run: terraform plan -no-color -input=false -out planfile
+  #     - run: terraform apply -auto-approve -input=false planfile
+  #     - run: aws eks wait cluster-active --name $EKS_CLUSTER --region $AWS_REGION
+  #     - uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - run: aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
+  #     - run: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0-beta.0/deploy/static/provider/aws/deploy.yaml
 
   destroy:
     name: "Destroy Infra on AWS"
