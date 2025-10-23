@@ -91,4 +91,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
     
       - name: Terraform destroy
-        run: terraform destroy -auto-approve -input=false -lock=false
+        run: |
+          terraform destroy -target=module.eks.aws_eks_node_group.node_group_name -auto-approve -lock=false
+          terraform destroy -auto-approve -input=false -lock=false
