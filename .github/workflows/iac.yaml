@@ -1,22 +1,19 @@
-# Workflow Name
 name: "infra-gitops"
 
-# Workflow Triggers
 on:
   push:
     branches:
-      - main 
-    paths:  
-      - terraform/**
-  workflow_dispatch: 
+      - main
+  workflow_dispatch:
+
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   S3_BUCKET: ${{ secrets.S3_BUCKET }}
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  EKS_CLUSTER: ${{ vars.EKS_CLUSTER }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
+  ECR_REPO: ${{ secrets.ECR_REPO }}
 
-# Define Jobs
 jobs:
   terraform:
     name: "Deploy Infra with Terraform on AWS"
@@ -34,28 +31,20 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init
-        id: init
         run: terraform init -backend-config="bucket=$S3_BUCKET"
 
       - name: Terraform validate
-        id: validate
         run: terraform validate
 
       - name: Terraform plan
-        id: plan
         run: terraform plan -no-color -input=false -out planfile
         continue-on-error: true
 
-      - name: Terraform plan status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
-
       - name: Terraform apply
-        id: apply
-        run: terraform apply -auto-approve -input=false -parallelism=1 planfile
+        run: terraform apply -auto-approve -input=false planfile
 
-      - name: Wait for EKS to be active
-        run: aws eks wait cluster-active --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
+      - name: Wait for EKS cluster to be active
+        run: aws eks wait cluster-active --name $EKS_CLUSTER --region $AWS_REGION
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -64,24 +53,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Get Kubernetes config
-        id: getconfig
-        if: steps.apply.outcome == 'success'
-        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }} 
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
+
+      - name: Install NGINX Ingress Controller
+        run: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0-beta.0/deploy/static/provider/aws/deploy.yaml
 
   destroy:
     name: "Destroy Infra on AWS"
     runs-on: ubuntu-latest
-    # Only trigger for workflow_dispatch
     if: github.event_name == 'workflow_dispatch'
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      S3_BUCKET: ${{ secrets.S3_BUCKET }}
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      EKS_CLUSTER: ${{ vars.EKS_CLUSTER }}
-      ECR_REPO: ${{ secrets.ECR_REPO }}
-
     defaults:
       run:
         shell: bash
@@ -95,9 +76,8 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init
-        id: init
         run: terraform init -backend-config="bucket=$S3_BUCKET"
-      
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -105,22 +85,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Get Kubernetes config
-        id: getconfig
-        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }} 
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
+
+      - name: Delete Ingress Controller
+        run: kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0-beta.0/deploy/static/provider/aws/deploy.yaml
 
       - name: Empty ECR Repository
         run: |
-          REPOSITORY_NAME=${{ secrets.ECR_REPO }}
-          IMAGES=$(aws ecr list-images --repository-name $REPOSITORY_NAME --query 'imageIds[*]' --output json)
+          IMAGES=$(aws ecr list-images --repository-name $ECR_REPO --query 'imageIds[*]' --output json)
           if [[ "$IMAGES" != "[]" ]]; then
-            echo "Deleting images from $REPOSITORY_NAME..."
-            aws ecr batch-delete-image --repository-name $REPOSITORY_NAME --image-ids "$IMAGES"
-          else
-            echo "No images found in $REPOSITORY_NAME."
+            aws ecr batch-delete-image --repository-name $ECR_REPO --image-ids "$IMAGES"
           fi
-      
+
       - name: Terraform destroy
-        id: destroy
         run: terraform destroy -auto-approve -input=false
-        # 
