@@ -8,8 +8,7 @@ on:
       - main 
     paths:  
       - terraform/**
-  workflow_dispatch: # Enables manual trigger for destroy job
-# Environment Variables
+  workflow_dispatch: 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -22,9 +21,6 @@ jobs:
   terraform:
     name: "Deploy Infra with Terraform on AWS"
     runs-on: ubuntu-latest
-    # Run only on push events
-    if: github.event_name == 'push'
-
     defaults:
       run:
         shell: bash
