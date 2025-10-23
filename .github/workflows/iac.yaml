@@ -81,9 +81,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init
-        run: |
-          terraform init -backend-config="bucket=$S3_BUCKET" -lock=false
-          terraform init -backend-config="bucket=$S3_BUCKET" -lock=false
+        run: terraform init -backend-config="bucket=$S3_BUCKET" -lock=false
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -106,5 +104,4 @@ jobs:
       #     fi
 
       - name: Terraform destroy
-        run: |
-          terraform destroy -auto-approve -input=false
+        run: terraform destroy -auto-approve -input=false -lock=false
