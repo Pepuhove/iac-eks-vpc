@@ -18,6 +18,7 @@ jobs:
   terraform:
     name: "Deploy Infra with Terraform on AWS"
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     defaults:
       run:
         shell: bash
