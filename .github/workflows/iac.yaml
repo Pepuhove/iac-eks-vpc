@@ -43,7 +43,8 @@ jobs:
         continue-on-error: true
 
       - name: Terraform apply
-        run: terraform apply -auto-approve -input=false planfile -lock=false planfile
+        run: terraform apply -auto-approve -input=false -lock=false planfile
+
 
       - name: Wait for EKS cluster to be active
         run: aws eks wait cluster-active --name $EKS_CLUSTER --region $AWS_REGION
